@@ -1,0 +1,127 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww35040\viewh19100\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs32 \cf0 If you\'92re unfamiliar with the domain of data analytics, whether as a new member of the field or merely an outside observer, then there\'92s a chance that your knowledge of data analysis doesn\'92t extend much further than your high school or college statistics class. And if you\'92re under the impression that the rudimentary concepts from that class, which you kind-of-but-not-really learned as you gawked at your crush from across the room, are probably not very important at the professional level, then you would be sorely mistaken.\
+\
+Even professionally, some of the most basic ideas in statistics - averages, medians, standard deviations, etc. - are often some of the first values that analysts seek to define when beginning analysis on a new dataset. In this article I\'92m going to give a walkthrough in layman\'92s terms of a basic data analysis project on SAT and ACT performance data, whose process includes significantly more than just a statistical analysis. Let\'92s dive in!\
+\
+*Please note that this article is not a guide to the Python programming language. Although I reference many blocks of code that were used throughout my project to achieve certain objectives, the focus of this article is on the data science/analytics process itself, which can be performed using a variety of programming languages.\
+\
+
+\f1\b \ul Data Collection/Import
+\f0\b0 \ulnone \
+\
+The first step in data analysis is simple: collect your data. For more advanced projects, in order to know which data may be useful, you might need to begin by identifying the problem you\'92re attempting to solve. From there you might decide to search for existing datasets online or collect data manually from various sources. However, for this project I used pre-crafted datasets (link - https://blog.collegevine.com/here-are-the-average-sat-scores-by-state/) that were provided to me in a classroom environment. These .csv files include SAT and ACT performance data from 2017 and 2018, some of which can be seen here:\
+\
+Once imported into my notebook, the first thing I did was take an overarching glance at the datasets to familiarize myself with their contents. The SAT datasets for each year include each state\'92s participation level, average scores for Reading and Math, and the average Total scores. The ACT datasets for each year include each state\'92s participation level, average scores for English, Math, Reading, and Science, and finally their Composite scores. Curiously, I noticed a wide range of participation levels, ranging from the single digits up to 100%. We\'92ll revisit that later in the article.\
+\
+
+\f1\b \ul Data Cleaning/Organization
+\f0\b0 \ulnone \
+\
+The second step in the process, sometimes called munging or scrubbing, involves cleaning and organizing the data in order to prepare it for analysis. If you\'92re new to this, you might wonder that means. As an example, let\'92s take a look at the snippet of data below:\
+\
+<>\
+\
+As you can see, the average Math score in Maryland on the 2017 SAT is allegedly a 52 out of 800. Now you don\'92t need to be an expert in public education policy or statistics to be skeptical about that number. Even Lenny from Of Mice and Men could have scored higher than that. As I mentioned previously, this dataset was provided to me in a classroom environment, where it was intentionally modified with errors and typos for my peers and I to identify and correct. To check this potential error, I compared it against the original dataset online and found that the average score was actually a 524, not 52. In order to correct this mistake in my personal dataframe, which I named \'93sat_2017\'94, I ran the following line of code:\
+\
+sat_2017.loc[20, 'Math'] = 524\
+\
+The process of cleaning data can involve a whole variety of other tasks besides just correcting typos. In fact, munging is often the bane of a data analyst\'92s existence. It\'92s usually the most time-consuming and meticulous step of the entire process, especially when you\'92re working with large datasets that contain hundreds of thousands or even millions of rows. For that reason, I can\'92t walk through every possible scenario concerning data cleaning, but I will share a couple more tasks that I had to perform while munging this data, starting with modifying column types.\
+\
+Most columns in a dataframe can be described in layman\'92s terms as being either alphabetical or numerical (We use some more nuanced terms like objects, floats, integers, and others to describe certain variations of these categories, but it\'92s essentially just letters vs. numbers). If you look back at the previous image a couple paragraphs up, you will notice that the Participation column lists a percentage symbol, %, next to the numbers, whereas the other columns do not. This poses a problem in the coding world. With the exception of a decimal or occasionally a few other symbols, performing a mathematical computation on data that contains even a single letter or non-numerical character will generate an error. To resolve this issue, data must be reformatted in order to remove those non-numerical characters so that you can perform a computation on the column.\
+\
+I removed the percentage symbols from the entire Participation column using the following line of code, after which my dataframe appeared as it does in the subsequent image.\
+\
+sat_2017['Participation'] = sat_2017['Participation'].map(lambda x: str(x).replace('%',''))\
+\
+My next step was to recategorize the Participation column as a \'93float,\'94 which is a type of numerical column that allows for decimals. You might be wondering why this was necessary, considering that I already removed the percentage symbols from the Participation column. Well, when a column\'92s data contains letters and other non-numerical symbols, that column is considered an \'93object.\'94 It\'92s important to note that merely removing non-numerical symbols from an \'93object\'94 column does not automatically recategorize it; the column will still be recognized as an \'93object\'94 until a programmer converts it to another type. The reason this is necessary is because mathematical computations by default cannot be performed on \'93object\'94 columns, even in the absence of non-numerical characters. Ergo, with the percentage symbols removed, I was then able to convert the Participation column from an \'93object\'94 to a \'93float\'94 using the following line of code:\
+\
+sat_2017['Participation'] = sat_2017['Participation'].astype(float)\
+\
+Note that attempting to convert the column type into a \'93float\'94 without first removing the percentage symbols would have generated an error. I had to make the column consist of nothing but numerical values before I could recategorize it as a \'93float\'94 column. (Interestingly, you can always go the other way around and convert a \'93float\'94 column of numbers into an \'93object\'94 column if you so desire!)\
+\
+The second-to-last part of the cleaning process was to rename the columns. This was not for personal preference or aesthetics. The rationale for this was that each column from all four dataset (2017 SAT, 2017 ACT, 2018 SAT, 2018 ACT) would need a unique name, because the final step would be to merge all four of these into a single dataframe. As column names cannot be repeated by default - not to mention to avoid ambiguity - I had to rename almost every column accordingly (I left the State column as is, because that\'92s the column on which I merged the dataframes). I used a simple pattern to rename each column with its year, exam, and subject using the following code:\
+\
+sat_2017 = sat_2017.rename(\{'State': 'state', "'Participation": "'17 sat_partic", "'Language": "'17 sat_language",'Math':"'17 sat_math", "'total":"'17 sat_total"\}, axis='columns')\
+act_2017 = act_2017.rename(\{'State': 'state', "'Participation": "'17_act_partic", "'English": "'17_act_english", "'Math": "'17_act_math","'Reading": "'17_act_reading", "'Science": "'17_act_science", "'Composite": "'17_act_composite"\}, axis='columns')\
+\
+After renaming the 2017 columns, I merged those two dataframes together as follows:\
+\
+combined_17 = pd.merge(sat_2017, act_2017, on ='state')\
+\
+This is what the merged dataframe for 2017 testing data looked like at this point:\
+\
+Everything I have described about data cleaning and organizing up until this point has been for the two 2017 datasets (SAT and ACT). The whole process had to be meticulously repeated for both of the 2018 datasets - identifying/correcting typos, reformatting data, recategorizing columns, renaming columns, and more. By this point I\'92m sure you can understand why I mentioned earlier that munging is the bane of an analyst\'92s existence! After cleaning and organizing both of the 2018 datasets, the very final step was to merge the combined 2017 data with the combined 2018 data into a single dataframe, which I performed with the following code:\
+\
+combined_all = pd.merge(combined_17, combined_18, on ='state')\
+\
+
+\f1\b \ul Exploratory Data Analysis (EDA) - Part 1
+\f0\b0 \ulnone \
+\
+The third step of the data analysis process is often called Exploratory Data Analysis, or EDA for short, and it\'92s exactly what it sounds like. Now that the data has been cleaned and organized, this is the stage where an analyst will finally begin to explore it and search for trends, patterns, and even anomalies. Often times, especially in a business environment, an analyst might be given a raw set of data and just told to make sense of it, and that\'92s what this stage (and the next) are really about.\
+\
+While making sense of an unfamiliar dataset could involve asking yourself dozens of questions until you find the \'93right\'94 question(s) to base your analysis on, this particular academic project was not so convoluted. Considering the data was relatively small anyway, the most I realistically expected to identify was which states had the highest and lowest participation rates for each year of each exam, and whether there was a noticeable incline or decline in a specific performance from 2017 to 2018.\
+\
+One surface-level analysis I almost always perform on any dataset involves identifying some of the most basic statistical values. These include the mean (average), maximum, minimum, median, and standard deviation for each numerical column (and sometimes the mode). In the case of this relatively simple project, this list includes most of what I was seeking to identify anyway, as I mentioned in the previous paragraph. I ran the following lines of code to determine these values and display them in an organized fashion:\
+\
+print("Means:")\
+print()\
+print(combined_all.mean())\
+print()\
+print("Medians:")\
+print()\
+print(combined_all.median())\
+print()\
+print("Maximums:")\
+print()\
+print(combined_all.max())\
+print()\
+print("Minimums:")\
+print()\
+print(combined_all.min())\
+print()\
+print("Standard Deviations:")\
+print()\
+print(combined_all.std())\
+print()\
+\
+The code\'92s output is quite lengthy, so let\'92s just use the Means section as an example. As you can see in the following image, my notebook displayed the average values for all of the numerical columns in my dataframe.\
+\
+<>\
+\
+Notice that the State column is not included. This is because the State column is an \'93object,\'94 and mathematical computations will only target numerical columns, including \'93floats\'94 and \'93integers\'94 among others. Hopefully now you can understand more intuitively why it was necessary to recategorize the Participation column during the munging stage of the project, as different data types require different treatments.\
+\
+According to this data the average SAT participation nationwide was less than 41% of eligible students in 2017 and less than 47% in 2018. The average ACT participation was about 64% of eligible students in 2017 and less than 61% in 2018. The first thing that came to my mind, especially as a former classroom teacher, is that not all high schoolers apply to college. Additionally, most college applicants either take the SAT or the ACT but not both. Considering these important bits of information, it stands to reason that we shouldn\'92t expect these numbers to be anywhere near 100%. Depending on what my goal is in analyzing a given project, I\'92m going to dive into the data and examine it from different perspectives.\
+\
+Hypothetically, let\'92s say I were contracted to do research for a nationwide company that creates study materials for college entrance exams, specifically in math. In that situation, it would be wise for me to take a closer look at general math performance on both exams and how it varies from state to state. In fact, I would probably be looking at much more data than just exam performance. Perhaps I would notice a correlation between states with lower math performances and states where the company has not invested as many resources marketing itself. If my client\'92s goal is simply to maximize profit, then my recommendation to them might be to market themselves more in those particular states, while continuing their current practices in the states that are performing well. For more advanced projects like that one, it\'92s crucial to think about what your goals or your client\'92s objectives are in order to determine how to best explore the data and arrive at the most informed conclusions.\
+\
+Finally, there is one more specific component of my EDA that I want to share in this article. Unlike my previous calculations, which were performed simply by identifying aspects of the existing data, sometimes analysis requires creating new data to explore. Consider that the datasets used in this project contain performances from two different time periods. Under that circumstance, it would probably be wise to explore the changes in value over time for each category. Let\'92s use SAT Reading performance as an example. If I want to know the net change in performance, I would subtract the average SAT Reading scores of each state in 2017 from their scores in 2018. Using just the following line of code, I created a new column in my dataframe to indicate this net change in SAT Reading performance:\
+\
+combined_all['SAT_reading_net_change'] = combined_all["'18_sat_language"] - combined_all['Evidence-Based Reading and Writing']\
+\
+With the new column in the table, you can clearly see that the net change in Alaska\'92s SAT Reading performance from 2017 to 2018 was 15 points, whereas Colorado\'92s performance dropped by 87 points - yikes! When dealing with data that occurs over time, exploring the net change in value for every category can be very informative and provide you with the insight you need to draw valuable conclusions.\
+\
+
+\f1\b \ul EDA Part 2 - Visualization
+\f0\b0 \ulnone \
+\
+The EDA stage doesn\'92t usually require as much time as Data Cleaning, although it can definitely endure longer than the lifespan of that cockroach in your garage that refuses to die. However, despite all of the surface-level exploration and analyses that you can perform in the first part of this stage with basic coding skills, sometimes creating visualizations can make it much easier to discover insights. Using simple graphs like histograms, bar graphs, line charts, and many others, you can gain a much better understanding of which data is important and why. Let\'92s take a look at some of the visualizations I used in this project.\
+\
+A simple bar graph is great tool to compare performance values across all states. The following bar graph displays the average SAT Math scores in 2018:\
+\
+<>\
+\
+If this project involved exam data for several years, instead of just two, then a line graph would be very useful to display changes over time. However, in the case of this project, creating a new column in the previous section to display the net change of performance worked just fine.\
+\
+Another useful visualization that most people don\'92t learn about in statistics courses is called a heat map. There are two kinds of heat maps - cluster heat maps and spatial heat maps. In this domain, cluster heat maps are much more common. As you will observe below, I used a heat map to visualize the correlations between each performance category and every other performance category. The darker the shade of blue, the higher the correlation. \
+\
+
+\f1\b \ul Interpreting Data/ Recommendations\
+
+\f0\b0 \ulnone -asdf}
